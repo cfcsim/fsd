@@ -32,11 +32,11 @@ jobs:
 
     - name: Prepare Files
       run: |
-        cp ${{github.workspace}}/build/fsd ${{github.workspace}}/program_directory/unix/
+        cp ${{github.workspace}}/build/fsd ${{github.workspace}}/unix/
         
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v3.0.0
       with:
         name: fsd-linux
-        path: ${{github.workspace}}/program_directory/unix/
+        path: ${{github.workspace}}/unix/
         if-not-files-found: error
