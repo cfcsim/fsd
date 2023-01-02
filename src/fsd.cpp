@@ -6,6 +6,7 @@
 	#include <unistd.h>
 #endif
 #include <sys/stat.h>
+#include <jsoncpp/json/json.h>
 
 #include "fsd.h"
 #include "manage.h"
@@ -124,42 +125,101 @@ void fsd::dochecks()
                client *tempclient;
                flightplan *tempflightplan;
                server *tempserver;
-               int clients=0;
-               for (tempclient=rootclient;tempclient;tempclient=tempclient->next)
-                  clients++;
-               int servers=0;
-               for (tempserver=rootserver;tempserver;tempserver=tempserver->next)
-                  servers++;
-               char dataseg[5120];
-               fprintf(wzfile,"{\"version\":%d,\"reload\":%d,\"lastupdate\":\"%s\",\"clients\":\"%d\",\"servers\":%d,\"clients\":[", 1, 1, sprintgmt(now, s), clients, servers);
+               int client_cnt=0;
+               int server_cnt=0;
+               Json::Value json;
+               Json::FastWriter fw;
+               Json::Value clients;
+               Json::Value servers;
+               json["version"] = 1;
+               json["reload"] = 1;
+               json["lastupdate"] = sprintgmt(now, s);
+               json["client"] = client_cnt;
+               json["server"] = server_cnt;
                for (tempclient=rootclient;tempclient;tempclient=tempclient->next)
                {
-                  //Public
-                  sprintf(dataseg,"{\"type\":\"%s\",\"callsign\":\"%s\",\"realname\":\"%s\",\"cid\":\"%s\",\"rating\":%d,\"visualrange\":%d,\"ident\":\"%s\",\"protocol\":%s", tempclient->type==CLIENT_ATC?"ATC":"PILOT", tempclient->callsign, tempclient->realname, tempclient->cid, tempclient->rating, tempclient->visualrange, tempclient->location->ident, tempclient->protocol);
+                  client_cnt ++;
+                  Json::Value tempclientdata;
+                  // Public
+                  tempclientdata["type"] = tempclient->type==CLIENT_ATC?"ATC":"PILOT";
+                  tempclientdata["callsign"] = tempclient->callsign;
+                  tempclientdata["realname"] = tempclient->realname;
+                  tempclientdata["cid"] = tempclient->cid;
+                  tempclientdata["rating"] = tempclient->rating;
+                  tempclientdata["visualrange"] = tempclient->visualrange;
+                  tempclientdata["ident"] = tempclient->location->ident;
+                  tempclientdata["protocol"] = tempclient->protocol;
                   if (tempclient->lat!=0 && tempclient->altitude < 100000 && tempclient->lon != 0)
-                     sprintf(dataseg,"%s,\"latlng\":[%f,%f],\"altitude\":%d,\"groundspeed\":%d", dataseg, tempclient->lat, tempclient->lon, tempclient->altitude, tempclient->groundspeed);
+                  {
+                     Json::Value latlng;
+                     latlng["lat"] = tempclient->lat;
+                     latlng["lng"] = tempclient->lon;
+                     tempclientdata["latlng"] = latlng;
+                     tempclientdata["altitude"] = tempclient->altitude;
+                     tempclientdata["groundspeed"] = tempclient->groundspeed;
+                  }
                   //ATC
                   if (tempclient->frequency!=0 && tempclient->frequency<100000 && tempclient && tempclient->type==CLIENT_ATC)
-                     sprintf(dataseg,"%s,\"frequency\":1%02d.%03d", dataseg, tempclient->frequency/1000, tempclient->frequency%1000);
+                  {
+                     char frequency[7];
+                     sprintf(frequency, "1%02d.%03d", tempclient->frequency/1000, tempclient->frequency%1000);
+                     tempclientdata["frequency"] = frequency;
+                  }
                   //PILOT
                   if (tempclient->type==CLIENT_PILOT) {
-                     sprintf(dataseg,"%s,\"pbh\":%u,\"transponder\":%d,\"facilitytype\":%d", dataseg, tempclient->pbh, tempclient->transponder, tempclient->facilitytype);
+                     tempclientdata["pbh"] = tempclient->pbh;
+                     tempclientdata["transponder"] = tempclient->transponder;
+                     tempclientdata["facilitytype"] = tempclient->facilitytype;
                      tempflightplan=tempclient->plan;
-                     if (tempflightplan)
-                        sprintf(dataseg,"%s,\"plan\":{\"aircraft\":\"%s\",\"tascruise\":%d,\"depairport\":\"%s\",\"alt\":\"%s\",\"destairport\":\"%s\",\"revision\":%d,\"type\":\"%c\",\"deptime\":%d,\"actdeptime\":%d,\"hrsenroute\":%d,\"minenroute\":%d,\"hrsfuel\":%d,\"minfuel\":%d,\"altairport\":\"%s\",\"remarks\":\"%s\",\"route\":\"%s\"}", dataseg, tempflightplan->aircraft, tempflightplan->tascruise, tempflightplan->depairport, tempflightplan->alt, tempflightplan->destairport, tempflightplan->revision, tempflightplan->type, tempflightplan->deptime, tempflightplan->actdeptime, tempflightplan->hrsenroute, tempflightplan->minenroute, tempflightplan->hrsfuel, tempflightplan->minfuel, tempflightplan->altairport, tempflightplan->remarks, tempflightplan->route);
+                     if (tempflightplan) {
+                        Json::Value tempflightplandata;
+                        tempflightplandata["aircraft"] = tempflightplan->aircraft;
+                        tempflightplandata["tascruise"] = tempflightplan->tascruise;
+                        tempflightplandata["depairport"] = tempflightplan->depairport;
+                        tempflightplandata["alt"] = tempflightplan->alt;
+                        tempflightplandata["destairport"] = tempflightplan->destairport;
+                        tempflightplandata["revision"] = tempflightplan->revision;
+                        tempflightplandata["type"] = tempflightplan->type;
+                        tempflightplandata["deptime"] = tempflightplan->deptime;
+                        tempflightplandata["actdeptime"] = tempflightplan->actdeptime;
+                        tempflightplandata["hrsenroute"] = tempflightplan->hrsenroute;
+                        tempflightplandata["minenroute"] = tempflightplan->minenroute;
+                        tempflightplandata["hrsfuel"] = tempflightplan->hrsfuel;
+                        tempflightplandata["minfuel"] = tempflightplan->minfuel;
+                        tempflightplandata["altairport"] = tempflightplan->altairport;
+                        tempflightplandata["remarks"] = tempflightplan->remarks;
+                        tempflightplandata["route"] = tempflightplan->route;
+                        tempclientdata["plan"] = tempflightplandata;
+                     }
                   }
-                  sprintf(dataseg,"%s,\"starttime\":%s}", dataseg, sprintgmt(tempclient->starttime,s));
-                  fprintf(wzfile,"%s,", dataseg);
+                  tempclientdata["starttime"] = sprintgmt(tempclient->starttime, s);
+                  clients.append(tempclientdata);
                }
-               fprintf(wzfile,"null],\"servers\":[");
-               char dataline[320]; 
+               if (client_cnt == 0) {
+                  clients.resize(0);
+               }
+               json["clients"] = clients;
+               json["client"] = client_cnt;
                for (tempserver=rootserver;tempserver;tempserver=tempserver->next)
+               {
+                  server_cnt ++;
                   if (strcmp(tempserver->hostname,"n/a") != 0)
                   {
-                     sprintf(dataline,"{\"ident\":\"%s\",\"hostname\":\"%s\",\"location\":\"%s\",\"name\":\"%s\",\"slient\":%d}", tempserver->ident, tempserver->hostname, tempserver->location, tempserver->name, tempserver->flags&SERVER_SILENT?0:1);
-                     fprintf(wzfile,"%s,",dataline);
+                     Json::Value tempserverdata;
+                     tempserverdata["ident"] = tempserver->ident;
+                     tempserverdata["hostname"] = tempserver->hostname;
+                     tempserverdata["location"] = tempserver->location;
+                     tempserverdata["name"] = tempserver->name;
+                     tempserverdata["slient"] = tempserver->flags&SERVER_SILENT?0:1;
+                     servers.append(tempserverdata);
                   };
-               fprintf(wzfile,"null]}");
+               }
+               if (server_cnt == 0) {
+                  servers.resize(0);
+               }
+               json["servers"] = servers;
+               json["server"] = server_cnt;
+               fprintf(wzfile, "%s", fw.write(json).c_str());
                fclose(wzfile);
       			   remove(whazzupfile);
                rename(whazzuptemp, whazzupfile);
