@@ -44,7 +44,7 @@ void clinterface::sendaa(client *who, absuser *ex)
 {
    char data[1000];
    sprintf(data,"%s:SERVER:%s:%s::%d", who->callsign, who->realname,
-      who->cid, who->rating);
+      who->cid, who->rating, who->protocol);
    sendpacket(NULL, NULL, ex, CLIENT_ALL, -1, CL_ADDATC, data);
 }
 void clinterface::sendap(client *who, absuser *ex)
