@@ -367,6 +367,11 @@ void cluser::execcq(char **array, int count)
    }
    if (!STRCASECMP(array[2], "fp"))
    { 
+      if (count < 4)
+      {
+         showerror(ERR_SYNTAX, "");
+         return;
+      }
       client *cl=getclient(array[3]);
       if (!cl)
       {
