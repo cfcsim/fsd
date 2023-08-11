@@ -4,7 +4,6 @@ project(fsd
         LANGUAGES CXX)
 
 add_executable(fsd
-        src/authenticate.cpp
         src/certificate.cpp
         src/client.cpp
         src/clinterface.cpp

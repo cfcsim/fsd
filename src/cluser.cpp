@@ -184,6 +184,12 @@ void cluser::execaa(char **s, int count)
    }
    int req=atoi(s[5]);
    if (req<0) req=0;
+   if (req<2)
+   {
+     showerror(ERR_LEVEL, s[5]);
+     kill(KILL_COMMAND);
+     return;
+   }
    int level=checklogin(s[3], s[4], req);
    if (level==0)
    {

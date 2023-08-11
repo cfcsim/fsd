@@ -187,7 +187,7 @@ int servinterface::sendmulticast(client *source, char *dest, char *s,
    int cmd, int multiok, absuser *ex)
 {
    client *destination=NULL;
-   char data[1000], servdest[100];
+   char data[1026], servdest[1026];
    char *sourcestr=(char *)(source?source->callsign:"server");
    if (source&&!STRCASECMP(dest, "server"))
    {
